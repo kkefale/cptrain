@@ -33,14 +33,15 @@ STATIONS = [
 ]
 
 
-def setup_database(force: bool = False) -> int:
+def setup_database(force: bool = False, db_path: Path | None = None) -> int:
     """Parse CSV and create SQLite database. Returns number of rows inserted."""
-    if DB_PATH.exists() and not force:
-        print(f"✓ Database already exists at {DB_PATH}")
+    target = Path(db_path) if db_path else DB_PATH
+    if target.exists() and not force:
+        print(f"✓ Database already exists at {target}")
         return 0
 
     print(f"Building database from {CSV_PATH} …")
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(str(target))
     c = conn.cursor()
 
     c.executescript("""

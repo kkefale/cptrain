@@ -5,6 +5,7 @@ A polished, iOS Weather-inspired Streamlit dashboard for Cape Town rainfall data
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -20,11 +21,13 @@ __version__ = "1.0.0"
 
 # ── Auto-setup database on first run ────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
-DB_PATH  = BASE_DIR / "rainfall.db"
+# Streamlit Cloud mounts the source repo; fall back to /tmp if not writable
+_db_local = BASE_DIR / "rainfall.db"
+DB_PATH = _db_local if os.access(str(BASE_DIR), os.W_OK) else Path("/tmp/rainfall.db")
 
 if not DB_PATH.exists():
     from setup_db import setup_database
-    setup_database()
+    setup_database(db_path=DB_PATH)
 
 # ─── STATION REGISTRY ───────────────────────────────────────────────────────
 STATIONS = [
@@ -586,6 +589,10 @@ def tab_climate_baseline():
 
     # ── Headline stats ────────────────────────────────────────────────────────
     ens_ann  = hist_annual.groupby("year")["total_mm"].mean()
+    if ens_ann.empty:
+        st.error("No historical data found. The database may not have built correctly. "
+                 "Check that cptrain.csv is present and re-deploy.")
+        st.stop()
     wettest  = int(ens_ann.idxmax())
     driest   = int(ens_ann.idxmin())
     cv       = ens_ann.std() / ens_ann.mean() * 100
