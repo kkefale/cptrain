@@ -3,8 +3,6 @@ Cape Town Rainfall Atlas
 A polished, iOS Weather-inspired Streamlit dashboard for Cape Town rainfall data.
 """
 
-__version__ = "1.0.0"
-
 from __future__ import annotations
 
 import sqlite3
@@ -17,6 +15,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
+
+__version__ = "1.0.0"
 
 # ── Auto-setup database on first run ────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
