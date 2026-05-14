@@ -25,9 +25,21 @@ BASE_DIR = Path(__file__).parent
 _db_local = BASE_DIR / "rainfall.db"
 DB_PATH = _db_local if os.access(str(BASE_DIR), os.W_OK) else Path("/tmp/rainfall.db")
 
-if not DB_PATH.exists():
+
+def _db_needs_build() -> bool:
+    """Return True if the database is missing or was left empty by a failed build."""
+    if not DB_PATH.exists():
+        return True
+    try:
+        with sqlite3.connect(str(DB_PATH)) as _c:
+            return _c.execute("SELECT COUNT(*) FROM rainfall").fetchone()[0] == 0
+    except Exception:
+        return True
+
+
+if _db_needs_build():
     from setup_db import setup_database
-    setup_database(db_path=DB_PATH)
+    setup_database(force=True, db_path=DB_PATH)
 
 # ─── STATION REGISTRY ───────────────────────────────────────────────────────
 STATIONS = [
@@ -590,8 +602,12 @@ def tab_climate_baseline():
     # ── Headline stats ────────────────────────────────────────────────────────
     ens_ann  = hist_annual.groupby("year")["total_mm"].mean()
     if ens_ann.empty:
-        st.error("No historical data found. The database may not have built correctly. "
-                 "Check that cptrain.csv is present and re-deploy.")
+        st.error(
+            f"No historical data found. "
+            f"DB path: `{DB_PATH}` — "
+            f"rows in rainfall table: "
+            + str(sqlite3.connect(str(DB_PATH)).execute("SELECT COUNT(*) FROM rainfall").fetchone()[0])
+        )
         st.stop()
     wettest  = int(ens_ann.idxmax())
     driest   = int(ens_ann.idxmin())
